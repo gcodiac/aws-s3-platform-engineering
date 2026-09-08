@@ -9,27 +9,30 @@ practical project for a hands-on cloud and platform engineering course.
 
 ---
 
-## Why AWS for a static website?
+## Why AWS for a static site?
 
-A plain static site — exactly what `main` contains — could be hosted free in minutes
-on GitHub Pages, Cloudflare Pages, Netlify or Vercel. This project makes that point on
-purpose: the course itself runs on Cloudflare, and `main` is also on GitHub Pages
-below.
+A static site does not need AWS.
 
-We could stop there. But then we'd miss the point: AWS infrastructure, IAM, CDNs, TLS,
-Terraform and a real CI/CD pipeline. The site stays simple so you can focus on
-infrastructure and delivery instead of a backend.
+This exact site can be published in minutes with GitHub Pages, Cloudflare Pages, Netlify or Vercel and the `main` branch is deliberately deployed to GitHub Pages to prove it.
 
-This branch, `main`, is the clean starting point. The finished implementation lives on
-[`platform-engineering`](../../tree/platform-engineering).
+**[View the simple GitHub Pages deployment →](https://gcodiac.github.io/aws-s3-static-site-cicd/)**
 
-### See the static site without AWS
+The AWS version exists for a different reason: to use a simple application as the vehicle for learning the infrastructure around it.
 
-This exact site is also published with GitHub Pages:
-**[Open the GitHub Pages demo →](https://gcodiac.github.io/aws-s3-static-site-cicd/)**
+That means working with:
 
-That's the point — hosting the site is easy. The course uses AWS because the
-infrastructure and pipeline are what you're here to learn.
+- private S3 origins
+- CloudFront and edge caching
+- IAM and least privilege
+- TLS certificates
+- Terraform
+- GitHub Actions
+- OIDC-based AWS authentication
+- deployment verification
+
+Keeping the application static removes backend complexity, so the focus stays on infrastructure, delivery and automation.
+
+**[Follow the course →](https://s3.aliskool.com/)**
 
 ---
 
