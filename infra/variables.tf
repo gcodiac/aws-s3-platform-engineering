@@ -175,3 +175,68 @@ variable "minimum_protocol_version" {
   type        = string
   default     = "TLSv1.2_2021"
 }
+
+# --- GitHub Actions federation ---------------------------------------------
+
+variable "github_repository" {
+  description = <<-EOT
+    Repository allowed to deploy, as "owner/name".
+
+    Leave empty to skip the IAM role entirely — useful while you are still
+    deploying by hand from a laptop.
+  EOT
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.github_repository == "" || can(regex("^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$", var.github_repository))
+    error_message = "github_repository must be in the form owner/name, for example octocat/hello-world."
+  }
+}
+
+variable "github_deploy_refs" {
+  description = <<-EOT
+    Git refs whose workflow runs may assume the deployment role.
+
+    Defaults to the main branch only. Add refs deliberately: every entry is
+    another way into your AWS account. Wildcards such as "refs/heads/*" mean
+    any branch — including one opened by a first-time contributor.
+  EOT
+  type        = list(string)
+  default     = ["refs/heads/main"]
+}
+
+variable "github_environment" {
+  description = <<-EOT
+    Optional GitHub Environment name to also trust, e.g. "production".
+
+    Environment subjects pair well with required reviewers: the role can only
+    be assumed by a job running in an environment that a human approved.
+  EOT
+  type        = string
+  default     = ""
+}
+
+variable "create_github_oidc_provider" {
+  description = <<-EOT
+    Create the GitHub OIDC provider in this account.
+
+    An AWS account can only have one provider per issuer URL, and it is shared
+    by every repository that federates in. Set to false if another stack in
+    this account already created it.
+  EOT
+  type        = bool
+  default     = true
+}
+
+variable "github_oidc_thumbprints" {
+  description = <<-EOT
+    Certificate thumbprints for the GitHub OIDC issuer.
+
+    AWS no longer relies on these for providers whose certificates chain to a
+    trusted root — the value is retained for compatibility and IAM validates
+    the token signature against GitHub's published JWKS regardless.
+  EOT
+  type        = list(string)
+  default     = ["6938fd4d98bab03faadb97b34396831e3780aea1"]
+}

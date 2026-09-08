@@ -95,3 +95,21 @@ output "dns_target" {
   EOT
   value       = aws_cloudfront_distribution.site.domain_name
 }
+
+# --- GitHub Actions --------------------------------------------------------
+
+output "github_actions_role_arn" {
+  description = <<-EOT
+    Role the deployment workflow assumes. Set this as the AWS_ROLE_ARN
+    repository variable in GitHub.
+
+    It is not a secret: it is an identifier, and it is useless without a token
+    from the repository named in its trust policy.
+  EOT
+  value       = try(aws_iam_role.github_actions[0].arn, null)
+}
+
+output "github_oidc_provider_arn" {
+  description = "ARN of the GitHub OIDC identity provider used by the deployment role."
+  value       = local.oidc_provider_arn
+}

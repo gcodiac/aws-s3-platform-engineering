@@ -74,3 +74,18 @@ price_class = "PriceClass_100"
 # route53_zone_id           = ""
 # attach_custom_domain      = false
 # minimum_protocol_version  = "TLSv1.2_2021"
+
+# --- GitHub Actions federation ---------------------------------------------
+#
+# Leave github_repository empty while you are still deploying by hand.
+# Set it to your fork to create the IAM role the pipeline assumes:
+#
+# github_repository  = "your-username/aws-s3-platform-engineering"
+# github_deploy_refs = ["refs/heads/main"]
+#
+# Trust a GitHub Environment as well, so a deploy can require approval:
+# github_environment = "production"
+#
+# An AWS account can hold only one GitHub OIDC provider. Set this to false
+# if another stack in the account already created it.
+# create_github_oidc_provider = true

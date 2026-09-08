@@ -53,6 +53,21 @@ locals {
 
   certificate_arn = local.manage_dns ? try(aws_acm_certificate_validation.site[0].certificate_arn, null) : try(aws_acm_certificate.site[0].arn, null)
 
+  # --- GitHub Actions federation -------------------------------------------
+
+  create_deploy_role         = var.github_repository != ""
+  create_oidc_provider       = local.create_deploy_role && var.create_github_oidc_provider
+  use_existing_oidc_provider = local.create_deploy_role && !var.create_github_oidc_provider
+
+  oidc_provider_arn = local.create_oidc_provider ? try(aws_iam_openid_connect_provider.github[0].arn, null) : try(data.aws_iam_openid_connect_provider.github[0].arn, null)
+
+  # Exactly which workflow runs may assume the role. A token from any other
+  # repository, branch or environment is rejected by the trust policy.
+  github_subjects = concat(
+    [for ref in var.github_deploy_refs : "repo:${var.github_repository}:ref:${ref}"],
+    var.github_environment != "" ? ["repo:${var.github_repository}:environment:${var.github_environment}"] : []
+  )
+
   tags = merge(
     {
       Project     = var.project
