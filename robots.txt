@@ -1,0 +1,8 @@
+# Cloud Launchpad
+#
+# Everything here is public documentation of a reference architecture, so
+# crawling is welcome. The Sitemap line is appended at build time because it
+# needs an absolute URL, which depends on where this build is deployed.
+
+User-agent: *
+Allow: /

@@ -977,6 +977,8 @@ code {
   font-size: .74rem;
   color: var(--text-faint);
 }
+.site-footer__build a { color: var(--text-muted); text-decoration: underline; text-underline-offset: 3px; }
+.site-footer__build a:hover { color: var(--text); }
 
 /* 16. Reveal animations -------------------------------------------------- */
 

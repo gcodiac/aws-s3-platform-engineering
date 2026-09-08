@@ -5,7 +5,7 @@
 # is not installed, use the commands shown in each recipe.
 
 .DEFAULT_GOAL := help
-.PHONY: help serve test
+.PHONY: help serve build test clean
 
 help: ## Show the available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -14,5 +14,11 @@ help: ## Show the available targets
 serve: ## Preview the site on http://localhost:8080
 	./scripts/serve.sh
 
+build: ## Assemble the deployable site into dist/
+	./scripts/build.sh
+
 test: ## Run the static site checks
 	./scripts/test.sh
+
+clean: ## Remove build output
+	rm -rf dist

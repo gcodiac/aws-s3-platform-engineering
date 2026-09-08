@@ -31,7 +31,8 @@ group() { printf '\n%s%s%s\n' "$BOLD" "$1" "$OFF"; }
 # ---------------------------------------------------------------------------
 group "Required files"
 # ---------------------------------------------------------------------------
-for f in index.html 404.html css/styles.css js/app.js assets/icons/favicon.svg .gitignore README.md; do
+for f in index.html 404.html robots.txt css/styles.css js/app.js \
+         assets/icons/favicon.svg assets/build-info.json .gitignore README.md; do
   if [[ -f "$f" ]]; then pass "$f exists"; else fail "$f is missing"; fi
 done
 
@@ -155,6 +156,37 @@ grep -q "'use strict'" js/app.js \
 grep -q 'prefers-reduced-motion' js/app.js \
   && pass "js/app.js honours prefers-reduced-motion" \
   || fail "js/app.js ignores prefers-reduced-motion" "Animation must be opt-out for motion-sensitive visitors."
+
+# ---------------------------------------------------------------------------
+group "Build"
+# ---------------------------------------------------------------------------
+if [[ -x scripts/build.sh ]]; then
+  if SITE_URL="https://example.invalid" ./scripts/build.sh >/dev/null 2>&1; then
+    pass "scripts/build.sh completes"
+
+    for f in dist/index.html dist/404.html dist/robots.txt dist/css/styles.css \
+             dist/js/app.js dist/assets/build-info.json dist/sitemap.xml; do
+      [[ -f "$f" ]] && pass "$f produced" || fail "$f was not produced"
+    done
+
+    # The artifact must contain the site and nothing else.
+    for leaked in dist/infra dist/scripts dist/docs dist/README.md dist/Makefile dist/.git; do
+      [[ -e "$leaked" ]] && fail "$leaked leaked into the build artifact" || pass "$(basename "$leaked") stays out of the artifact"
+    done
+
+    python3 -c "import json,sys; json.load(open('dist/assets/build-info.json'))" 2>/dev/null \
+      && pass "build-info.json is valid JSON" \
+      || fail "build-info.json is not valid JSON"
+
+    grep -q 'Sitemap: https://example.invalid/sitemap.xml' dist/robots.txt \
+      && pass "robots.txt references the generated sitemap" \
+      || fail "robots.txt is missing the Sitemap line"
+  else
+    fail "scripts/build.sh exited non-zero"
+  fi
+else
+  skip "scripts/build.sh"
+fi
 
 # ---------------------------------------------------------------------------
 group "Secrets"

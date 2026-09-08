@@ -307,6 +307,48 @@
   }
 
   /* ----------------------------------------------------------------------
+   * Build information.
+   *
+   * scripts/build.sh writes assets/build-info.json with the commit that
+   * produced the deployment. Showing it in the footer turns "did my change go
+   * out?" from a guess into a fact, and gives the pipeline's verification step
+   * something concrete to assert against after every deploy.
+   * -------------------------------------------------------------------- */
+  function initBuildInfo() {
+    var el = doc.getElementById('build-info');
+    if (!el || !window.fetch) return;
+
+    fetch('assets/build-info.json', { cache: 'no-cache' })
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .then(function (info) {
+        if (!info || !info.shortCommit) return;
+
+        if (info.commit === 'local') {
+          el.textContent = 'local build · not deployed';
+          return;
+        }
+
+        var when = '';
+        if (info.builtAt) {
+          when = ' · ' + info.builtAt.replace('T', ' ').replace('Z', ' UTC');
+        }
+        var label = 'build ' + info.shortCommit + ' · ' + (info.ref || 'unknown') + when;
+
+        if (info.runUrl) {
+          var link = doc.createElement('a');
+          link.href = info.runUrl;
+          link.rel = 'noopener';
+          link.textContent = label;
+          el.textContent = '';
+          el.appendChild(link);
+        } else {
+          el.textContent = label;
+        }
+      })
+      .catch(function () { /* the footer keeps its default text */ });
+  }
+
+  /* ----------------------------------------------------------------------
    * Boot
    * -------------------------------------------------------------------- */
   function init() {
@@ -318,6 +360,7 @@
     initSpotlight();
     initCounters();
     initConsole();
+    initBuildInfo();
   }
 
   if (doc.readyState === 'loading') {
