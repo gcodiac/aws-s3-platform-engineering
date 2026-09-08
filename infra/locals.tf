@@ -24,6 +24,20 @@ locals {
   # forces CloudFront to replace the behaviour that references it.
   s3_origin_id = "s3-${local.bucket_name}"
 
+  # --- Custom domain -------------------------------------------------------
+
+  # A certificate is only requested when a domain has been supplied.
+  create_certificate = var.domain_name != ""
+
+  # Terraform manages the DNS records only when the hosted zone is in this
+  # account and its ID has been provided.
+  manage_dns = var.route53_zone_id != ""
+
+  # When Terraform manages DNS it can wait for issuance, so downstream
+  # resources depend on the validation. Otherwise they use the certificate
+  # directly and it is the operator's job to have validated it.
+  certificate_arn = local.manage_dns ? try(aws_acm_certificate_validation.site[0].certificate_arn, null) : try(aws_acm_certificate.site[0].arn, null)
+
   tags = merge(
     {
       Project     = var.project

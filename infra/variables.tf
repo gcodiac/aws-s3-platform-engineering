@@ -114,3 +114,37 @@ variable "price_class" {
     error_message = "price_class must be PriceClass_100, PriceClass_200 or PriceClass_All."
   }
 }
+
+# --- Custom domain and TLS -------------------------------------------------
+
+variable "domain_name" {
+  description = <<-EOT
+    Custom domain for the site, e.g. launchpad.example.com.
+
+    Leave empty to use the distribution's own *.cloudfront.net domain, which
+    is free, already has a valid certificate, and is perfectly adequate for a
+    lab. Setting this requests an ACM certificate; it does not, on its own,
+    put the domain in front of the distribution — see attach_custom_domain.
+  EOT
+  type        = string
+  default     = ""
+}
+
+variable "subject_alternative_names" {
+  description = "Additional names on the certificate, e.g. [\"www.example.com\"]."
+  type        = list(string)
+  default     = []
+}
+
+variable "route53_zone_id" {
+  description = <<-EOT
+    Route 53 hosted zone ID for domain_name, if the zone is in this account.
+
+    When set, Terraform writes the ACM validation records and waits for the
+    certificate to be issued. Leave empty when DNS is managed anywhere else;
+    the records you need are then published in the acm_validation_records
+    output.
+  EOT
+  type        = string
+  default     = ""
+}

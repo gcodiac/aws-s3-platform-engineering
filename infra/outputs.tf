@@ -49,3 +49,33 @@ output "site_url" {
   description = "Public URL of the deployed site."
   value       = "https://${aws_cloudfront_distribution.site.domain_name}"
 }
+
+# --- Certificate -----------------------------------------------------------
+
+output "acm_certificate_arn" {
+  description = "ARN of the ACM certificate, or null when no custom domain is configured."
+  value       = try(aws_acm_certificate.site[0].arn, null)
+}
+
+output "acm_certificate_status" {
+  description = "Certificate status. PENDING_VALIDATION until the DNS records are in place."
+  value       = try(aws_acm_certificate.site[0].status, null)
+}
+
+output "acm_validation_records" {
+  description = <<-EOT
+    DNS records that prove domain ownership.
+
+    When route53_zone_id is set these are created for you. Otherwise, create
+    them at whichever DNS provider hosts the domain and leave them in place —
+    ACM re-checks them at renewal, and deleting them causes a silent renewal
+    failure months later.
+  EOT
+  value = [
+    for dvo in try(aws_acm_certificate.site[0].domain_validation_options, []) : {
+      name  = dvo.resource_record_name
+      type  = dvo.resource_record_type
+      value = dvo.resource_record_value
+    }
+  ]
+}

@@ -46,3 +46,29 @@ default_root_object = "index.html"
 # PriceClass_200  adds Asia, the Middle East and Africa
 # PriceClass_All  every edge location
 price_class = "PriceClass_100"
+
+# --- Custom domain and TLS -------------------------------------------------
+#
+# Leave domain_name empty to use the free *.cloudfront.net domain.
+#
+# With a domain, there are two paths:
+#
+#   Route 53 in this account
+#     domain_name          = "launchpad.example.com"
+#     route53_zone_id      = "Z0123456789ABCDEFGHIJ"
+#     attach_custom_domain = true
+#   One apply does everything.
+#
+#   DNS elsewhere (Cloudflare, the registrar, a corporate zone)
+#     1. Set domain_name only, and apply.
+#     2. Read `terraform output acm_validation_records` and create those
+#        records at your DNS provider. Leave them there forever — ACM
+#        re-checks them at renewal.
+#     3. Wait for `terraform output acm_certificate_status` to read ISSUED.
+#     4. Set attach_custom_domain = true and apply again.
+#     5. Point your domain at `terraform output cloudfront_domain_name`
+#        with a CNAME (or an ALIAS/ANAME record at the zone apex).
+#
+# domain_name               = "launchpad.example.com"
+# subject_alternative_names = ["www.launchpad.example.com"]
+# route53_zone_id           = ""
