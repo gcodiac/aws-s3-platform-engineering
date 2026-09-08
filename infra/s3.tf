@@ -136,3 +136,83 @@ resource "aws_s3_bucket_lifecycle_configuration" "site" {
     }
   }
 }
+
+# ---------------------------------------------------------------------------
+# Bucket policy
+#
+# The final link in the chain. Public access is blocked, ACLs are disabled and
+# CloudFront signs its requests — but S3 still refuses everything until a
+# policy says who may read what.
+#
+# Two statements, and the second is the one people forget.
+# ---------------------------------------------------------------------------
+
+data "aws_iam_policy_document" "site" {
+
+  # Allow the CloudFront service principal to read objects, but only when the
+  # request comes from THIS distribution.
+  #
+  # Without the AWS:SourceArn condition, any CloudFront distribution in any
+  # AWS account could be pointed at this bucket and would be served. The
+  # condition is what turns "CloudFront may read this" into "my CloudFront
+  # distribution may read this". This is the confused deputy problem, and the
+  # condition is the fix.
+  statement {
+    sid    = "AllowCloudFrontServicePrincipalReadOnly"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["cloudfront.amazonaws.com"]
+    }
+
+    # Read only. CloudFront never needs to write, and a distribution that
+    # cannot write cannot be used to deface the site.
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.site.arn}/*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "AWS:SourceArn"
+      values   = [aws_cloudfront_distribution.site.arn]
+    }
+  }
+
+  # Refuse anything that arrives over plain HTTP.
+  #
+  # S3 endpoints accept both HTTP and HTTPS. Blocking public access does not
+  # change that for authenticated callers, so an engineer or a script using a
+  # plain-HTTP endpoint would send credentials in the clear. An explicit Deny
+  # cannot be overridden by any Allow, here or in an IAM policy.
+  statement {
+    sid    = "DenyInsecureTransport"
+    effect = "Deny"
+
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+
+    actions = ["s3:*"]
+    resources = [
+      aws_s3_bucket.site.arn,
+      "${aws_s3_bucket.site.arn}/*",
+    ]
+
+    condition {
+      test     = "Bool"
+      variable = "aws:SecureTransport"
+      values   = ["false"]
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "site" {
+  bucket = aws_s3_bucket.site.id
+  policy = data.aws_iam_policy_document.site.json
+
+  # Apply the public access block first. It is what guarantees this policy
+  # cannot accidentally be made public, and S3 evaluates BlockPublicPolicy
+  # when the policy is written.
+  depends_on = [aws_s3_bucket_public_access_block.site]
+}
