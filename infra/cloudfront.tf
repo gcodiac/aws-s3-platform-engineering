@@ -52,6 +52,100 @@ resource "aws_cloudfront_origin_access_control" "site" {
   signing_protocol = "sigv4"
 }
 
+# ---------------------------------------------------------------------------
+# Response headers
+#
+# S3 stores objects and their content types. It has no opinion about security
+# headers, and adding them per object would mean re-uploading the site to
+# change one. CloudFront attaches them at the edge instead, so the policy is
+# infrastructure — reviewed in a plan, versioned in git, changed without a
+# deployment.
+# ---------------------------------------------------------------------------
+
+resource "aws_cloudfront_response_headers_policy" "site" {
+  name    = "${local.name_prefix}-security-headers"
+  comment = "Security headers for the ${var.project} static site"
+
+  security_headers_config {
+
+    # Tell browsers to use HTTPS for this host for the next year, even if the
+    # user types http://. Note preload is deliberately false: submitting to
+    # the browser preload list is close to irreversible, and on a
+    # *.cloudfront.net name you would be making that decision about a domain
+    # you do not own. Turn it on for your own domain once you are certain
+    # every subdomain can serve HTTPS.
+    strict_transport_security {
+      access_control_max_age_sec = 31536000
+      include_subdomains         = true
+      preload                    = false
+      override                   = true
+    }
+
+    # Stop browsers guessing content types. Without it, a file served as
+    # text/plain that happens to contain HTML can be sniffed and executed as
+    # HTML.
+    content_type_options {
+      override = true
+    }
+
+    # No framing at all. This site has no reason to be embedded, and framing
+    # is how clickjacking works.
+    frame_options {
+      frame_option = "DENY"
+      override     = true
+    }
+
+    # Send the full URL to same-origin destinations, only the origin to
+    # cross-origin HTTPS destinations, and nothing when downgrading to HTTP.
+    referrer_policy {
+      referrer_policy = "strict-origin-when-cross-origin"
+      override        = true
+    }
+
+    # A Content Security Policy is the difference between "an injected script
+    # runs" and "an injected script is refused by the browser".
+    #
+    # 'unsafe-inline' appears twice, and it is a real compromise:
+    #
+    #   script-src  the theme bootstrap in <head> is inline, because resolving
+    #               the colour scheme in an external file would flash the
+    #               wrong theme before it loads.
+    #   style-src   404.html carries a small inline <style> block.
+    #
+    # The correct fix is a SHA-256 hash per inline block, which then has to be
+    # recomputed whenever the markup changes. Doing that properly means
+    # generating the policy from the built artifact rather than hard-coding it
+    # here — a worthwhile exercise, and a good illustration of why so many
+    # real policies contain 'unsafe-inline'.
+    content_security_policy {
+      content_security_policy = join("; ", [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline'",
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data:",
+        "font-src 'self'",
+        "connect-src 'self'",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+        "frame-ancestors 'none'",
+        "upgrade-insecure-requests",
+      ])
+      override = true
+    }
+  }
+
+  custom_headers_config {
+    # Locks down the browser features this origin may use. There is no
+    # first-class Terraform block for it, so it goes in as a custom header.
+    items {
+      header   = "Permissions-Policy"
+      value    = "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+      override = true
+    }
+  }
+}
+
 resource "aws_cloudfront_distribution" "site" {
   enabled             = true
   is_ipv6_enabled     = true
@@ -93,7 +187,8 @@ resource "aws_cloudfront_distribution" "site" {
     # does not have to store two copies.
     compress = true
 
-    cache_policy_id = data.aws_cloudfront_cache_policy.caching_optimized.id
+    cache_policy_id            = data.aws_cloudfront_cache_policy.caching_optimized.id
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.site.id
   }
 
   # -------------------------------------------------------------------------
