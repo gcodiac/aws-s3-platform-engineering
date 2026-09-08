@@ -12,22 +12,30 @@ Actions.
 
 ---
 
-## Why AWS for a static website?
+## Why AWS for a static site?
 
-A plain static site — exactly what [`main`](../../tree/main) contains — could be
-hosted free in minutes on GitHub Pages, Cloudflare Pages, Netlify or Vercel. This
-project makes that point on purpose: the course runs on Cloudflare, and `main` is also
-on GitHub Pages.
+A static site does not need AWS.
 
-We could stop there. But then we'd miss the point: AWS infrastructure, IAM, CDNs, TLS,
-Terraform and a real CI/CD pipeline — which is what this branch implements.
+This exact site can be published in minutes with GitHub Pages, Cloudflare Pages, Netlify or Vercel and the `main` branch is deliberately deployed to GitHub Pages to prove it.
 
-### See the static site without AWS
+**[View the simple GitHub Pages deployment →](https://gcodiac.github.io/aws-s3-static-site-cicd/)**
 
-**[Open the GitHub Pages demo →](https://gcodiac.github.io/aws-s3-static-site-cicd/)**
+The AWS version exists for a different reason: to use a simple application as the vehicle for learning the infrastructure around it.
 
-Hosting the site is easy. This branch exists because the infrastructure and delivery
-pipeline are the actual learning objective.
+That means working with:
+
+- private S3 origins
+- CloudFront and edge caching
+- IAM and least privilege
+- TLS certificates
+- Terraform
+- GitHub Actions
+- OIDC-based AWS authentication
+- deployment verification
+
+Keeping the application static removes backend complexity, so the focus stays on infrastructure, delivery and automation.
+
+**[Follow the course →](https://s3.aliskool.com/)**
 
 ---
 
