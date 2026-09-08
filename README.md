@@ -12,7 +12,7 @@ described in **Terraform** and shipped by **GitHub Actions**.
 
 Follow the step-by-step learning platform:
 
-[Open the Platform Engineering Course](https://s3-devops.aliskool.com/)
+[Open the Platform Engineering Course](https://s3.aliskool.com/)
 
 ---
 
