@@ -12,6 +12,25 @@ Actions.
 
 ---
 
+## Why AWS for a static website?
+
+A plain static site — exactly what [`main`](../../tree/main) contains — could be
+hosted free in minutes on GitHub Pages, Cloudflare Pages, Netlify or Vercel. This
+project makes that point on purpose: the course runs on Cloudflare, and `main` is also
+on GitHub Pages.
+
+We could stop there. But then we'd miss the point: AWS infrastructure, IAM, CDNs, TLS,
+Terraform and a real CI/CD pipeline — which is what this branch implements.
+
+### See the static site without AWS
+
+**[Open the GitHub Pages demo →](https://gcodiac.github.io/aws-s3-static-site-cicd/)**
+
+Hosting the site is easy. This branch exists because the infrastructure and delivery
+pipeline are the actual learning objective.
+
+---
+
 ## Architecture
 
 ```mermaid
@@ -125,6 +144,22 @@ bucket lives. DNS can be Route 53 in the same account or any external provider.
 - [docs/architecture.md](docs/architecture.md) — security model, CI/CD flow, ALB decision
 - [docs/runbook.md](docs/runbook.md) — rollback, drift, common failures
 - [Course](https://s3.aliskool.com/) — step-by-step lessons built around this project
+
+---
+
+## Cost considerations
+
+| Component | Cost consideration |
+| --- | --- |
+| GitHub Pages | Free for the `main` demo |
+| S3 | Very low for a small static site; storage + requests |
+| CloudFront | Usage-based requests/data transfer |
+| ACM | No separate charge for public certs used with supported AWS services |
+| Route 53 | Optional hosted-zone/domain cost |
+| CI/CD | GitHub Actions usage depends on plan/runtime |
+
+For a small training site the AWS cost should be low, but resources should still be
+destroyed when no longer needed.
 
 ---
 
