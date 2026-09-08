@@ -100,6 +100,21 @@ jobs:
           S3_BUCKET: ${{ vars.S3_BUCKET }}
         run: ./scripts/deploy.sh
 
+      # ---------------------------------------------------------------------
+      # Invalidate
+      #
+      # S3 now holds the new files; the edge locations do not know that. This
+      # step tells them. WAIT makes the job block until propagation finishes,
+      # so the verification that follows is testing the new deployment rather
+      # than whatever the edge happened to still be holding.
+      # ---------------------------------------------------------------------
+      - name: Invalidate the CloudFront cache
+        id: invalidation
+        env:
+          CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+          WAIT: 'true'
+        run: ./scripts/invalidate.sh
+
       - name: Summarise
         if: always()
         run: |
@@ -110,5 +125,6 @@ jobs:
             echo "| --- | --- |"
             echo "| Commit | \`${GITHUB_SHA:0:7}\` |"
             echo "| Bucket | \`${{ vars.S3_BUCKET }}\` |"
+            echo "| Invalidation | \`${{ steps.invalidation.outputs.invalidation_id || 'n/a' }}\` |"
             echo "| Status | ${{ job.status }} |"
           } >> "$GITHUB_STEP_SUMMARY"
