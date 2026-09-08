@@ -100,7 +100,7 @@ locals {
       Project     = var.project
       Environment = var.environment
       ManagedBy   = "Terraform"
-      Repository  = "aws-s3-platform-engineering"
+      Repository  = "aws-s3-static-site-cicd"
     },
     var.tags
   )

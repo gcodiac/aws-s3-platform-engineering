@@ -80,7 +80,7 @@ price_class = "PriceClass_100"
 # Leave github_repository empty while you are still deploying by hand.
 # Set it to your fork to create the IAM role the pipeline assumes:
 #
-# github_repository  = "your-username/aws-s3-platform-engineering"
+# github_repository  = "your-username/aws-s3-static-site-cicd"
 # github_deploy_refs = ["refs/heads/main"]
 #
 # Trust a GitHub Environment as well, so a deploy can require approval:
