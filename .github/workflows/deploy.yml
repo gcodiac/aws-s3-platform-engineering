@@ -80,15 +80,35 @@ jobs:
           role-session-name: deploy-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Confirm the assumed identity
+        run: aws sts get-caller-identity
+
+      # ---------------------------------------------------------------------
+      # Build
+      #
+      # The artifact is built here rather than downloaded from the CI run, so
+      # the deployment is reproducible from the commit alone. SITE_URL is
+      # passed in because the sitemap needs absolute URLs, which depend on
+      # where this build is going.
+      # ---------------------------------------------------------------------
+      - name: Build the site
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: ./scripts/build.sh
+
+      - name: Upload to S3
+        env:
+          S3_BUCKET: ${{ vars.S3_BUCKET }}
+        run: ./scripts/deploy.sh
+
+      - name: Summarise
+        if: always()
         run: |
-          identity=$(aws sts get-caller-identity --output json)
-          echo "$identity"
           {
             echo "### Deployment"
             echo
             echo "| | |"
             echo "| --- | --- |"
             echo "| Commit | \`${GITHUB_SHA:0:7}\` |"
-            echo "| Account | \`$(echo "$identity" | jq -r .Account)\` |"
-            echo "| Assumed role | \`$(echo "$identity" | jq -r .Arn)\` |"
+            echo "| Bucket | \`${{ vars.S3_BUCKET }}\` |"
+            echo "| Status | ${{ job.status }} |"
           } >> "$GITHUB_STEP_SUMMARY"
