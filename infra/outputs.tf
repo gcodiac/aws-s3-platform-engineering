@@ -79,3 +79,19 @@ output "acm_validation_records" {
     }
   ]
 }
+
+# --- DNS -------------------------------------------------------------------
+
+output "custom_domain_url" {
+  description = "URL of the site on its custom domain, or null when none is attached."
+  value       = local.attach_custom_domain ? "https://${var.domain_name}" : null
+}
+
+output "dns_target" {
+  description = <<-EOT
+    Value to point your domain at when DNS is managed outside this account.
+
+    Create a CNAME for a subdomain, or an ALIAS/ANAME record at a zone apex.
+  EOT
+  value       = aws_cloudfront_distribution.site.domain_name
+}

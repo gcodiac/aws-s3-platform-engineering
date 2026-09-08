@@ -59,6 +59,11 @@ resource "aws_cloudfront_distribution" "site" {
   default_root_object = var.default_root_object
   price_class         = var.price_class
 
+  # The domains this distribution will answer to, in addition to its own
+  # *.cloudfront.net name. Empty until a validated certificate exists —
+  # CloudFront rejects an alias it has no certificate for.
+  aliases = local.domain_aliases
+
   origin {
     origin_id = local.s3_origin_id
 
@@ -123,10 +128,33 @@ resource "aws_cloudfront_distribution" "site" {
     }
   }
 
+  # -------------------------------------------------------------------------
+  # TLS
+  #
+  # Either the free *.cloudfront.net certificate, or the ACM certificate for
+  # the custom domain. Exactly one set of attributes applies; the rest are
+  # null and the provider leaves them alone.
+  # -------------------------------------------------------------------------
   viewer_certificate {
-    # The free *.cloudfront.net certificate. Replaced by an ACM certificate
-    # once a custom domain is configured.
-    cloudfront_default_certificate = true
+    cloudfront_default_certificate = local.attach_custom_domain ? null : true
+
+    acm_certificate_arn = local.attach_custom_domain ? local.certificate_arn : null
+
+    # SNI is free and supported by every browser released this decade. The
+    # alternative, a dedicated IP address, costs hundreds of dollars a month
+    # and exists for clients that predate 2013.
+    ssl_support_method = local.attach_custom_domain ? "sni-only" : null
+
+    minimum_protocol_version = local.attach_custom_domain ? var.minimum_protocol_version : null
+  }
+
+  # Fail during plan with a sentence a human can act on, rather than during
+  # apply with an AWS API error.
+  lifecycle {
+    precondition {
+      condition     = !var.attach_custom_domain || var.domain_name != ""
+      error_message = "attach_custom_domain is true but domain_name is empty. Set domain_name, or leave both unset to use the *.cloudfront.net domain."
+    }
   }
 
   tags = {

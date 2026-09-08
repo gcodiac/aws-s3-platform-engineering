@@ -72,3 +72,5 @@ price_class = "PriceClass_100"
 # domain_name               = "launchpad.example.com"
 # subject_alternative_names = ["www.launchpad.example.com"]
 # route53_zone_id           = ""
+# attach_custom_domain      = false
+# minimum_protocol_version  = "TLSv1.2_2021"

@@ -148,3 +148,30 @@ variable "route53_zone_id" {
   type        = string
   default     = ""
 }
+
+variable "attach_custom_domain" {
+  description = <<-EOT
+    Put domain_name in front of the distribution.
+
+    Kept separate from domain_name because the certificate must be ISSUED
+    first: CloudFront rejects an alias whose certificate is still pending
+    validation. With Route 53 you can set both at once. With DNS elsewhere,
+    apply once to request the certificate, create the validation records,
+    then set this to true and apply again.
+  EOT
+  type        = bool
+  default     = false
+}
+
+variable "minimum_protocol_version" {
+  description = <<-EOT
+    Lowest TLS version the distribution will negotiate with a viewer.
+
+    TLSv1.2_2021 is the current sensible floor. TLS 1.0 and 1.1 are
+    deprecated and fail most compliance baselines. Only applies when a custom
+    certificate is attached; the default CloudFront certificate has its own
+    fixed policy.
+  EOT
+  type        = string
+  default     = "TLSv1.2_2021"
+}
