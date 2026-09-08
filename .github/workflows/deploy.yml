@@ -58,6 +58,9 @@ jobs:
     # sts:AssumeRoleWithWebIdentity" and no further explanation.
     environment:
       name: production
+      # Shown on the repository home page and on every deployment record, so
+      # "where did this go?" never needs asking.
+      url: ${{ vars.SITE_URL }}
 
     steps:
       - name: Check out the repository
@@ -115,6 +118,23 @@ jobs:
           WAIT: 'true'
         run: ./scripts/invalidate.sh
 
+      # ---------------------------------------------------------------------
+      # Verify
+      #
+      # A green pipeline that only proves `aws s3 sync` exited zero has proved
+      # the upload worked. It has not proved the site is up, that the right
+      # build is live, that TLS works, or that the bucket is still private.
+      # This checks all of it from outside AWS, and fails the deployment if
+      # any of it is wrong.
+      # ---------------------------------------------------------------------
+      - name: Verify the deployment
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+          EXPECTED_COMMIT: ${{ github.sha }}
+          S3_BUCKET: ${{ vars.S3_BUCKET }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+        run: ./scripts/verify-deployment.sh
+
       - name: Summarise
         if: always()
         run: |
@@ -127,4 +147,6 @@ jobs:
             echo "| Bucket | \`${{ vars.S3_BUCKET }}\` |"
             echo "| Invalidation | \`${{ steps.invalidation.outputs.invalidation_id || 'n/a' }}\` |"
             echo "| Status | ${{ job.status }} |"
+            echo
+            echo "[Open the site](${{ vars.SITE_URL }})"
           } >> "$GITHUB_STEP_SUMMARY"
