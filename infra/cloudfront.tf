@@ -21,6 +21,37 @@ data "aws_cloudfront_cache_policy" "caching_optimized" {
   name = "Managed-CachingOptimized"
 }
 
+# ---------------------------------------------------------------------------
+# Origin Access Control
+#
+# OAC is how CloudFront proves to S3 that a request really came from this
+# distribution. CloudFront signs every origin request with SigV4 using
+# credentials AWS manages on its behalf; S3 validates the signature against a
+# bucket policy that names the CloudFront service principal.
+#
+# The result is that the bucket can stay completely private while still being
+# readable by the CDN. Nobody holds a key, nothing needs rotating, and there
+# is no URL anywhere that serves the objects directly.
+#
+# OAC replaces Origin Access Identity (OAI), the older mechanism. OAI still
+# works but does not support SSE-KMS, newer regions, or anything other than
+# GET, and AWS recommends OAC for new distributions. If you find OAI in a
+# tutorial, the tutorial predates 2022.
+# ---------------------------------------------------------------------------
+
+resource "aws_cloudfront_origin_access_control" "site" {
+  name        = "${local.name_prefix}-oac"
+  description = "Signs CloudFront requests to the ${local.bucket_name} origin"
+
+  origin_access_control_origin_type = "s3"
+
+  # "always" signs every request. "never" disables signing, and
+  # "no-override" only signs when the viewer did not already send an
+  # Authorization header — neither is appropriate for a private origin.
+  signing_behavior = "always"
+  signing_protocol = "sigv4"
+}
+
 resource "aws_cloudfront_distribution" "site" {
   enabled             = true
   is_ipv6_enabled     = true
@@ -36,6 +67,10 @@ resource "aws_cloudfront_distribution" "site" {
     # only serves public objects over plain HTTP and cannot authenticate a
     # signed request, so it cannot be used with a private bucket.
     domain_name = aws_s3_bucket.site.bucket_regional_domain_name
+
+    # Without this, CloudFront sends anonymous requests to the origin and a
+    # private bucket answers every one of them with 403.
+    origin_access_control_id = aws_cloudfront_origin_access_control.site.id
   }
 
   default_cache_behavior {
