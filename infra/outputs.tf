@@ -113,3 +113,26 @@ output "github_oidc_provider_arn" {
   description = "ARN of the GitHub OIDC identity provider used by the deployment role."
   value       = local.oidc_provider_arn
 }
+
+# --- Pipeline configuration ------------------------------------------------
+
+output "deployment_configuration" {
+  description = <<-EOT
+    Everything the GitHub Actions workflows need, in one place.
+
+    Set these as repository *variables* (Settings → Secrets and variables →
+    Actions → Variables), not secrets. None of them is confidential: a bucket
+    name, a distribution ID and a role ARN are identifiers, and the role is
+    useless without an OIDC token from the repository named in its trust
+    policy. Marking non-secrets as secrets only makes the logs unreadable.
+
+        gh variable set AWS_ROLE_ARN --body "<github_actions_role_arn>"
+  EOT
+  value = {
+    AWS_REGION                 = data.aws_region.current.region
+    AWS_ROLE_ARN               = try(aws_iam_role.github_actions[0].arn, "<set github_repository and re-apply>")
+    S3_BUCKET                  = aws_s3_bucket.site.id
+    CLOUDFRONT_DISTRIBUTION_ID = aws_cloudfront_distribution.site.id
+    SITE_URL                   = local.attach_custom_domain ? "https://${var.domain_name}" : "https://${aws_cloudfront_distribution.site.domain_name}"
+  }
+}

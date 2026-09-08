@@ -1,0 +1,55 @@
+# ---------------------------------------------------------------------------
+# Remote state (example — rename to backend.tf to use it)
+#
+# This project starts with local state: a terraform.tfstate file sitting in
+# this directory. That is the right choice for learning, because there is one
+# fewer moving part and you can open the file and read it.
+#
+# It stops being the right choice the moment a second party applies:
+#
+#   Collaboration   State on a laptop is invisible to everyone else. The next
+#                   engineer's plan proposes creating what already exists.
+#   Locking         Two concurrent applies against the same state corrupt it.
+#   Durability      A lost laptop is lost state. Terraform then no longer
+#                   knows the resources exist, and reconstructing that mapping
+#                   by hand — `terraform import`, resource by resource — is a
+#                   genuinely bad day.
+#   Secrets         State holds every attribute of every resource in plain
+#                   text. It belongs in an encrypted, access-controlled,
+#                   versioned bucket, not in a directory that a stray
+#                   `git add -A` could reach.
+#
+# The bootstrap problem: the bucket that stores the state cannot itself be
+# managed by the state it stores. Create it once — by hand, by CLI, or in a
+# separate tiny Terraform configuration with its own local state — then point
+# this backend at it.
+#
+#   aws s3api create-bucket \
+#     --bucket tfstate-<account-id>-<region> \
+#     --region <region> \
+#     --create-bucket-configuration LocationConstraint=<region>
+#   aws s3api put-bucket-versioning \
+#     --bucket tfstate-<account-id>-<region> \
+#     --versioning-configuration Status=Enabled
+#   aws s3api put-public-access-block \
+#     --bucket tfstate-<account-id>-<region> \
+#     --public-access-block-configuration \
+#       BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
+#
+# Then rename this file to backend.tf and run `terraform init -migrate-state`.
+# ---------------------------------------------------------------------------
+
+terraform {
+  backend "s3" {
+    bucket = "tfstate-000000000000-eu-west-1"
+    key    = "cloud-launchpad/course/terraform.tfstate"
+    region = "eu-west-1"
+
+    encrypt = true
+
+    # State locking using a lock file in the same bucket. This replaces the
+    # DynamoDB table that older guides describe; if you find dynamodb_table in
+    # a tutorial, it predates Terraform 1.10.
+    use_lockfile = true
+  }
+}
