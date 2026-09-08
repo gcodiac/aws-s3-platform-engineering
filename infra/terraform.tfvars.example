@@ -27,3 +27,13 @@ aws_region = "eu-west-1"
 #   Owner      = "platform-team"
 #   CostCentre = "training"
 # }
+
+# --- Origin bucket ---------------------------------------------------------
+
+# Keep previous object versions so a bad deploy can be rolled back.
+enable_versioning                = true
+noncurrent_version_retention_days = 30
+
+# Set to true ONLY for disposable lab environments. It lets `terraform
+# destroy` delete a bucket that still contains objects.
+force_destroy_bucket = true

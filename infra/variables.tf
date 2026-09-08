@@ -50,3 +50,39 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+# --- Origin bucket ---------------------------------------------------------
+
+variable "enable_versioning" {
+  description = <<-EOT
+    Keep previous versions of every object.
+
+    This is the rollback mechanism for a static site: a bad deploy can be
+    undone by restoring the previous version rather than rebuilding it.
+  EOT
+  type        = bool
+  default     = true
+}
+
+variable "noncurrent_version_retention_days" {
+  description = "How long to keep superseded object versions before expiring them."
+  type        = number
+  default     = 30
+
+  validation {
+    condition     = var.noncurrent_version_retention_days >= 1
+    error_message = "Retention must be at least one day."
+  }
+}
+
+variable "force_destroy_bucket" {
+  description = <<-EOT
+    Allow `terraform destroy` to delete a bucket that still contains objects.
+
+    Convenient for a disposable lab, dangerous anywhere else: it is the
+    difference between destroy failing safely and destroy succeeding
+    permanently.
+  EOT
+  type        = bool
+  default     = false
+}
