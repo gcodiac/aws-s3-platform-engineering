@@ -1,0 +1,94 @@
+# ---------------------------------------------------------------------------
+# Continuous deployment
+#
+# CI proves a change is safe to merge. This workflow puts a merged change in
+# front of visitors. They are separate files for a reason: this one holds
+# permissions CI must never have.
+#
+# There are no AWS access keys anywhere in this repository. The job asks
+# GitHub for a short-lived OIDC token describing the run, and AWS STS
+# exchanges it for credentials that expire when the job ends.
+# ---------------------------------------------------------------------------
+
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'index.html'
+      - '404.html'
+      - 'robots.txt'
+      - 'css/**'
+      - 'js/**'
+      - 'assets/**'
+      - 'scripts/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+
+# Never deploy twice at once. cancel-in-progress is false on purpose: a
+# half-finished `aws s3 sync` interrupted mid-flight leaves the bucket in a
+# state nobody planned. Queue instead.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  # The one permission that makes keyless authentication work: it lets the job
+  # request a signed OIDC token from GitHub's token service.
+  id-token: write
+
+jobs:
+  deploy:
+    name: Deploy to production
+    runs-on: ubuntu-latest
+
+    # A GitHub Environment gives this deployment a history, a URL on the
+    # repository home page, and somewhere to attach required reviewers.
+    #
+    # It also changes the OIDC token. A job with an environment gets
+    #   sub = repo:OWNER/REPO:environment:production
+    # instead of
+    #   sub = repo:OWNER/REPO:ref:refs/heads/main
+    # so the IAM trust policy has to allow the environment subject too. Set
+    # github_environment = "production" in terraform.tfvars, or the role
+    # assumption fails with "Not authorized to perform
+    # sts:AssumeRoleWithWebIdentity" and no further explanation.
+    environment:
+      name: production
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v5
+
+      # ---------------------------------------------------------------------
+      # Authenticate
+      #
+      # No secrets are read here. AWS_ROLE_ARN is a repository *variable*
+      # because a role ARN is an identifier, not a credential: it is useless
+      # without a token from the repository named in the role's trust policy.
+      # ---------------------------------------------------------------------
+      - name: Authenticate to AWS with OIDC
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          # A named session makes the AssumeRole call traceable back to this
+          # exact workflow run in CloudTrail.
+          role-session-name: deploy-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Confirm the assumed identity
+        run: |
+          identity=$(aws sts get-caller-identity --output json)
+          echo "$identity"
+          {
+            echo "### Deployment"
+            echo
+            echo "| | |"
+            echo "| --- | --- |"
+            echo "| Commit | \`${GITHUB_SHA:0:7}\` |"
+            echo "| Account | \`$(echo "$identity" | jq -r .Account)\` |"
+            echo "| Assumed role | \`$(echo "$identity" | jq -r .Arn)\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
