@@ -15,7 +15,15 @@ name: Deploy
 on:
   push:
     branches:
+      # In an ordinary repository this list would be `main` alone.
+      #
+      # This one is a teaching repository: `main` deliberately holds the
+      # website and nothing else, so that a learner can build the platform
+      # themselves. The completed implementation — including this workflow —
+      # lives on platform-engineering, which makes it the branch that
+      # actually has anything to deploy.
       - main
+      - platform-engineering
     paths:
       - 'index.html'
       - '404.html'
