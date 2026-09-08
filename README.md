@@ -9,15 +9,27 @@ practical project for a hands-on cloud and platform engineering course.
 
 ---
 
-## What this project is
+## Why AWS for a static website?
 
-The site itself is deliberately simple: HTML, CSS and vanilla JavaScript, no
-framework. The course uses it to teach AWS, Terraform and CI/CD by building real
-infrastructure around something small enough to fully understand.
+A plain static site — exactly what `main` contains — could be hosted free in minutes
+on GitHub Pages, Cloudflare Pages, Netlify or Vercel. This project makes that point on
+purpose: the course itself runs on Cloudflare, and `main` is also on GitHub Pages
+below.
 
-This branch, `main`, is the clean starting point — no Terraform, no pipeline, no cloud
-resources. The finished implementation lives on
+We could stop there. But then we'd miss the point: AWS infrastructure, IAM, CDNs, TLS,
+Terraform and a real CI/CD pipeline. The site stays simple so you can focus on
+infrastructure and delivery instead of a backend.
+
+This branch, `main`, is the clean starting point. The finished implementation lives on
 [`platform-engineering`](../../tree/platform-engineering).
+
+### See the static site without AWS
+
+This exact site is also published with GitHub Pages:
+**[Open the GitHub Pages demo →](https://gcodiac.github.io/aws-s3-static-site-cicd/)**
+
+That's the point — hosting the site is easy. The course uses AWS because the
+infrastructure and pipeline are what you're here to learn.
 
 ---
 
@@ -57,8 +69,8 @@ for this one distribution — everything else gets `403 AccessDenied`.
 ## Run locally
 
 ```bash
-git clone git@github.com:gcodiac/aws-s3-platform-engineering.git
-cd aws-s3-platform-engineering
+git clone git@github.com:gcodiac/aws-s3-static-site-cicd.git
+cd aws-s3-static-site-cicd
 
 ./scripts/serve.sh    # http://localhost:8080
 ./scripts/test.sh     # static site checks
@@ -83,6 +95,22 @@ No build step — `serve.sh` wraps `python3 -m http.server`.
 
 Step-by-step lessons — S3, CloudFront, ACM, Terraform, GitHub Actions and OIDC — built
 around this exact project.
+
+---
+
+## Cost considerations
+
+| Component | Cost consideration |
+| --- | --- |
+| GitHub Pages | Free for this demo |
+| S3 | Very low for a small static site; storage + requests |
+| CloudFront | Usage-based requests/data transfer |
+| ACM | No separate charge for public certs used with supported AWS services |
+| Route 53 | Optional hosted-zone/domain cost |
+| CI/CD | GitHub Actions usage depends on plan/runtime |
+
+For a small training site the AWS cost should be low, but resources should still be
+destroyed when no longer needed.
 
 ---
 
