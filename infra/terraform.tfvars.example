@@ -1,0 +1,29 @@
+# ---------------------------------------------------------------------------
+# Copy this file to terraform.tfvars and edit it.
+#
+#   cp terraform.tfvars.example terraform.tfvars
+#
+# terraform.tfvars is git-ignored. This example file is committed so that the
+# expected shape of the input is documented, without committing anybody's
+# account-specific values.
+# ---------------------------------------------------------------------------
+
+# Name prefix and Project tag for everything this configuration creates.
+project     = "cloud-launchpad"
+environment = "course"
+
+# Region for the S3 bucket. Pick one close to you.
+# CloudFront is global, and ACM certificates for CloudFront are always
+# requested in us-east-1 regardless of what you set here.
+aws_region = "eu-west-1"
+
+# Leave empty to derive a globally unique name:
+#   <project>-<environment>-<account id>
+# Set it explicitly if you need a specific bucket name.
+# bucket_name = ""
+
+# Extra tags merged with Project / Environment / ManagedBy.
+# tags = {
+#   Owner      = "platform-team"
+#   CostCentre = "training"
+# }
