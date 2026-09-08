@@ -8,6 +8,14 @@ described in **Terraform** and shipped by **GitHub Actions**.
 
 ---
 
+## Course
+
+Follow the step-by-step learning platform:
+
+[Open the Platform Engineering Course](https://s3-devops.aliskool.com/)
+
+---
+
 ## Why this project exists
 
 If the only goal were to put a static site on the internet, this repository would be
