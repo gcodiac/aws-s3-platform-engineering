@@ -20,6 +20,10 @@ locals {
     "${local.name_prefix}-${data.aws_caller_identity.current.account_id}"
   )
 
+  # A stable identifier for the origin inside the distribution. Changing it
+  # forces CloudFront to replace the behaviour that references it.
+  s3_origin_id = "s3-${local.bucket_name}"
+
   tags = merge(
     {
       Project     = var.project

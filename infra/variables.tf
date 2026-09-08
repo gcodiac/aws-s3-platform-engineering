@@ -86,3 +86,31 @@ variable "force_destroy_bucket" {
   type        = bool
   default     = false
 }
+
+# --- CloudFront ------------------------------------------------------------
+
+variable "default_root_object" {
+  description = "Object returned for a request to the distribution root."
+  type        = string
+  default     = "index.html"
+}
+
+variable "price_class" {
+  description = <<-EOT
+    Which edge locations serve the site.
+
+    PriceClass_100 uses North America and Europe only and is the cheapest.
+    PriceClass_200 adds Asia, the Middle East and Africa.
+    PriceClass_All uses every location, including South America and Oceania.
+
+    This is a cost/latency trade-off, not an availability one: visitors
+    outside the selected classes are still served, just from further away.
+  EOT
+  type        = string
+  default     = "PriceClass_100"
+
+  validation {
+    condition     = contains(["PriceClass_100", "PriceClass_200", "PriceClass_All"], var.price_class)
+    error_message = "price_class must be PriceClass_100, PriceClass_200 or PriceClass_All."
+  }
+}

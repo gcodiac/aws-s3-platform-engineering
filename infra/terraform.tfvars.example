@@ -37,3 +37,12 @@ noncurrent_version_retention_days = 30
 # Set to true ONLY for disposable lab environments. It lets `terraform
 # destroy` delete a bucket that still contains objects.
 force_destroy_bucket = true
+
+# --- CloudFront ------------------------------------------------------------
+
+default_root_object = "index.html"
+
+# PriceClass_100  North America and Europe (cheapest)
+# PriceClass_200  adds Asia, the Middle East and Africa
+# PriceClass_All  every edge location
+price_class = "PriceClass_100"

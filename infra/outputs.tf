@@ -32,3 +32,20 @@ output "bucket_regional_domain_name" {
   description = "REST endpoint of the bucket. This is the CloudFront origin — note it is not a website endpoint."
   value       = aws_s3_bucket.site.bucket_regional_domain_name
 }
+
+# --- CloudFront ------------------------------------------------------------
+
+output "cloudfront_distribution_id" {
+  description = "Distribution ID. The deployment pipeline needs this to create invalidations."
+  value       = aws_cloudfront_distribution.site.id
+}
+
+output "cloudfront_domain_name" {
+  description = "The distribution's own domain name, e.g. d111111abcdef8.cloudfront.net."
+  value       = aws_cloudfront_distribution.site.domain_name
+}
+
+output "site_url" {
+  description = "Public URL of the deployed site."
+  value       = "https://${aws_cloudfront_distribution.site.domain_name}"
+}
