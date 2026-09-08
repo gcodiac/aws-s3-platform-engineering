@@ -130,7 +130,7 @@ terraform apply
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| `Not authorized to perform sts:AssumeRoleWithWebIdentity` | The OIDC `sub` claim does not match the trust policy. Jobs using a GitHub Environment get `…:environment:name`, not `…:ref:refs/heads/main` | Set `github_environment` in `terraform.tfvars` and re-apply |
+| `Not authorized to perform sts:AssumeRoleWithWebIdentity` | The OIDC `sub` claim does not match the trust policy. Two common causes: a job using a GitHub Environment gets `…:environment:name` rather than `…:ref:refs/heads/main`; and GitHub may issue the *immutable* claim form `repo:owner@1234/name@5678:…` | Set `github_environment` in `terraform.tfvars` and re-apply. The configuration already matches both claim formats — see `local.github_subjects`. To see the claim your run actually presented, look up the failed `AssumeRoleWithWebIdentity` event in CloudTrail |
 | Site returns 403 for everything | Bucket policy missing, or `AWS:SourceArn` does not match the distribution | `terraform apply`; check `aws_s3_bucket_policy.site` |
 | Changes not visible after deploying | Edge cache still holding the old object | Run the invalidation; confirm with `curl -sI <url> \| grep -i x-cache` |
 | A missing page returns 403 rather than 404 | Custom error responses not configured | Check `custom_error_response` on the distribution |

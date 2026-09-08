@@ -63,10 +63,37 @@ locals {
 
   # Exactly which workflow runs may assume the role. A token from any other
   # repository, branch or environment is rejected by the trust policy.
-  github_subjects = concat(
-    [for ref in var.github_deploy_refs : "repo:${var.github_repository}:ref:${ref}"],
-    var.github_environment != "" ? ["repo:${var.github_repository}:environment:${var.github_environment}"] : []
-  )
+  #
+  # GitHub issues the subject claim in two shapes, and a trust policy that
+  # only knows about the older one fails with an unexplained
+  # "Not authorized to perform sts:AssumeRoleWithWebIdentity".
+  #
+  #   classic     repo:owner/name:ref:refs/heads/main
+  #   immutable   repo:owner@1234567/name@89012345:ref:refs/heads/main
+  #
+  # The immutable form embeds the numeric owner and repository IDs, which
+  # cannot be reused. It closes a real hole: delete a repository, and someone
+  # else can register the same owner/name and mint tokens your trust policy
+  # accepts. GitHub is rolling this out, so both forms are matched here.
+  #
+  # Note where the wildcards sit. "owner@*" is anchored on the literal login
+  # followed by "@", so it cannot match a different account whose name merely
+  # starts the same way. A pattern like "repo:owner*" would.
+  gh_repo_parts = split("/", var.github_repository)
+  gh_owner      = length(local.gh_repo_parts) == 2 ? local.gh_repo_parts[0] : ""
+  gh_repo_name  = length(local.gh_repo_parts) == 2 ? local.gh_repo_parts[1] : ""
+
+  github_subject_prefixes = [
+    "repo:${var.github_repository}",
+    "repo:${local.gh_owner}@*/${local.gh_repo_name}@*",
+  ]
+
+  github_subjects = flatten([
+    for prefix in local.github_subject_prefixes : concat(
+      [for ref in var.github_deploy_refs : "${prefix}:ref:${ref}"],
+      var.github_environment != "" ? ["${prefix}:environment:${var.github_environment}"] : []
+    )
+  ])
 
   tags = merge(
     {

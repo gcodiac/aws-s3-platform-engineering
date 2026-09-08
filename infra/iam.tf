@@ -74,6 +74,9 @@ data "aws_iam_policy_document" "github_actions_trust" {
     # Never write this as "repo:owner/*" or, worse, leave it out. Without a
     # sub condition, ANY GitHub Actions workflow in ANY repository on GitHub
     # can assume this role — the token is genuine, it just is not yours.
+    #
+    # local.github_subjects covers both the classic and the immutable claim
+    # formats; see locals.tf for why that matters.
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
