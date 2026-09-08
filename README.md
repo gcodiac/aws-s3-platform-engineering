@@ -6,29 +6,19 @@ described in **Terraform** and shipped by **GitHub Actions**.
 
 ![The Cloud Launchpad homepage](docs/images/homepage.png)
 
+> **This is the `platform-engineering` branch** — the completed implementation.
+> [`main`](../../tree/main) holds the website alone and is the starting point.
+
 ---
 
-## Why this project exists
+## What is here
 
-If the only goal were to put a static site on the internet, this repository would be
-overkill. GitHub Pages, Cloudflare Pages, Netlify and Vercel all host static sites for
-free, in about ninety seconds, with a much shorter README.
-
-This project uses AWS on purpose. The website is the excuse; the platform around it is
-the point. Building it end to end forces you to work with the pieces that show up in
-almost every real cloud system:
-
-| You will build | Because in real work you need to understand |
+| | |
 | --- | --- |
-| A private S3 bucket | Object storage, bucket policies, and why "public bucket" is a headline waiting to happen |
-| A CloudFront distribution | CDNs, edge caching, cache invalidation, TLS termination |
-| An ACM certificate | Certificate issuance, validation, renewal, and why CloudFront insists on `us-east-1` |
-| Terraform configuration | Infrastructure as code, state, plan vs apply, drift, teardown |
-| GitHub Actions workflows | CI vs CD, pipeline design, deployment gates |
-| An IAM role with OIDC trust | Short-lived credentials instead of long-lived access keys |
-
-Every one of those transfers directly to running containers, APIs and data pipelines.
-A static site is simply the cheapest, safest place to learn them.
+| **Website** | Hand-written HTML, CSS and vanilla JavaScript. No framework, no bundler, no `node_modules`. |
+| **Infrastructure** | 13 Terraform resources: S3, CloudFront, OAC, bucket policy, ACM, IAM/OIDC. |
+| **Pipeline** | Three GitHub Actions workflows: CI, Terraform checks, and a deployment that verifies itself. |
+| **Credentials** | None. GitHub federates into AWS over OIDC and gets credentials that expire with the job. |
 
 ---
 
@@ -37,117 +27,227 @@ A static site is simply the cheapest, safest place to learn them.
 ```mermaid
 flowchart LR
     V["Visitor<br/>browser"] -->|HTTPS| CF["Amazon CloudFront<br/>edge location"]
-    CF -->|"signed origin request<br/>(Origin Access Control)"| S3["Amazon S3<br/>private bucket"]
+    CF -->|"signed origin request<br/>Origin Access Control"| S3["Amazon S3<br/>private bucket"]
     ACM["AWS Certificate Manager<br/>us-east-1"] -.->|TLS certificate| CF
     X(("Public<br/>internet")) -.->|blocked · 403| S3
 
-    classDef aws fill:#1b2436,stroke:#6ea8ff,color:#e9edfa
-    classDef bad  fill:#2a1720,stroke:#ff6b81,color:#ffd7de,stroke-dasharray:4 3
+    classDef aws fill:#12203a,stroke:#6ea8ff,color:#e9edfa
+    classDef bad fill:#2a1720,stroke:#ff6b81,color:#ffd7de
     class CF,S3,ACM aws
     class X bad
 ```
 
-The bucket is never public. It has no website endpoint and no public read policy.
-CloudFront is the only principal allowed to read from it, and only for this one
-distribution. Everything else — direct bucket URLs included — gets `403 AccessDenied`.
+The bucket has no website endpoint and no public read policy. CloudFront is the only
+principal allowed to read it, and only for this one distribution — everything else,
+including a direct bucket URL, gets `403 AccessDenied`.
+
+**[docs/architecture.md](docs/architecture.md)** covers the security path, the CI/CD
+pipeline, the OIDC token exchange, the Terraform workflow, and where an ALB would go
+if this ever grew a backend.
 
 ---
 
-## Technology
-
-**Site** — HTML, CSS and vanilla JavaScript. No framework, no bundler, no `node_modules`.
-What you see in the repository is exactly what the edge serves.
-
-**Infrastructure** — Terraform, Amazon S3, Amazon CloudFront, AWS Certificate Manager,
-Origin Access Control, AWS IAM (optionally Amazon Route 53).
-
-**Delivery** — Git, GitHub, GitHub Actions, GitHub OIDC federation to AWS.
-
----
-
-## Prerequisites
-
-| Tool | Needed for | Check |
-| --- | --- | --- |
-| Git | Cloning and version control | `git --version` |
-| Python 3 | The local preview server | `python3 --version` |
-| A GitHub account | Forking the repo and running Actions | — |
-| An AWS account | Deploying the infrastructure | — |
-| AWS CLI v2 | Talking to AWS from your terminal | `aws --version` |
-| Terraform ≥ 1.6 | Provisioning the infrastructure | `terraform version` |
-
-Only Git and Python 3 are required to run the site locally. The AWS tooling becomes
-relevant once you start building the platform.
-
-> **Cost note.** The AWS resources in this project sit inside or close to the free tier
-> for a small site, but they are not free forever and CloudFront charges for data
-> transfer. Tear the infrastructure down when you are finished with it.
-
----
-
-## Run it locally
-
-```bash
-git clone git@github.com:gcodiac/aws-s3-platform-engineering.git
-cd aws-s3-platform-engineering
-
-./scripts/serve.sh          # http://localhost:8080
-```
-
-`scripts/serve.sh` is a thin wrapper around Python's built-in static file server:
-
-```bash
-python3 -m http.server 8080
-```
-
-That is the entire toolchain. There is nothing to install and nothing to build, which
-is exactly why static hosting is so cheap to operate.
-
-Run the checks the pipeline will eventually run for you:
-
-```bash
-./scripts/test.sh
-```
-
----
-
-## Repository layout
+## Terraform
 
 ```
-.
-├── index.html              # the homepage
-├── 404.html                # custom error page
-├── css/styles.css          # all styling, hand-written, no framework
-├── js/app.js               # progressive enhancement only
-├── assets/                 # icons and images
-├── docs/                   # documentation and screenshots
-└── scripts/
-    ├── serve.sh            # local preview
-    └── test.sh             # static site checks
+infra/
+├── versions.tf              # Terraform >= 1.6, AWS provider ~> 6.0
+├── providers.tf             # default provider + us_east_1 alias for ACM
+├── variables.tf             # every input, validated and documented
+├── locals.tf                # data sources and computed names
+├── s3.tf                    # bucket, public access block, encryption,
+│                            #   versioning, lifecycle, bucket policy
+├── cloudfront.tf            # OAC, response headers policy, distribution
+├── acm.tf                   # certificate + DNS validation (optional)
+├── dns.tf                   # Route 53 alias records (optional)
+├── iam.tf                   # GitHub OIDC provider and deployment role
+├── outputs.tf               # what the pipeline and the runbook need
+├── backend.tf.example       # remote state, when local state stops being enough
+└── terraform.tfvars.example
 ```
 
----
+Resources created:
 
-## Branches
-
-| Branch | What it holds |
+| Resource | Purpose |
 | --- | --- |
-| `main` | **You are here.** The finished website and nothing else. This is the starting point: no Terraform, no pipeline, no cloud resources. |
-| `platform-engineering` | The completed implementation — Terraform infrastructure, GitHub Actions workflows, deployment and verification scripts. |
+| `aws_s3_bucket` | The origin. Private, encrypted, versioned. |
+| `aws_s3_bucket_public_access_block` | All four switches on. Overrides any policy that would make it public. |
+| `aws_s3_bucket_ownership_controls` | `BucketOwnerEnforced` — ACLs disabled entirely. |
+| `aws_s3_bucket_server_side_encryption_configuration` | SSE-S3 with a bucket key. |
+| `aws_s3_bucket_versioning` + `aws_s3_bucket_lifecycle_configuration` | Rollback, with old versions expiring after 30 days. |
+| `aws_s3_bucket_policy` | Grants `s3:GetObject` to CloudFront for this distribution only; denies plain HTTP. |
+| `aws_cloudfront_origin_access_control` | SigV4 signing of every origin request. |
+| `aws_cloudfront_response_headers_policy` | HSTS, CSP, nosniff, frame-options, permissions-policy. |
+| `aws_cloudfront_distribution` | The CDN: TLS, caching, compression, custom error pages. |
+| `aws_acm_certificate` (+ validation) | TLS for a custom domain. Optional. |
+| `aws_route53_record` | DNS alias records. Optional. |
+| `aws_iam_openid_connect_provider` | Trusts GitHub's token issuer. |
+| `aws_iam_role` + `aws_iam_role_policy` | What the pipeline may do: sync this bucket, invalidate this distribution. Nothing else. |
 
-`main` is deliberately incomplete. Building the missing half is the work.
+Custom domains are entirely optional and nothing is hard-coded — see
+[Custom domain](#custom-domain) below.
 
-If you want to see where it ends up — or compare your solution against a finished one —
-read the other branch, and read its history rather than just its files:
+---
 
-```bash
-git switch platform-engineering
-git log --oneline
+## CI/CD
+
+```
+.github/workflows/
+├── ci.yml           # pull requests: site checks, build, artifact upload
+├── terraform.yml    # pull requests touching infra/: fmt, validate, optional plan
+└── deploy.yml       # push to main: OIDC → build → sync → invalidate → verify
 ```
 
-The commits are ordered the way the platform was built: bucket, then distribution, then
-the lock-down, then certificates, then the pipeline. Each one is small enough to read in
-a single sitting.
+They are separate files because they need different permissions. `ci.yml` holds no
+credentials and can safely run on a pull request from a fork. `deploy.yml` holds
+`id-token: write` and runs only on `main`.
+
+The deployment ends by fetching the live site and asserting that
+`/assets/build-info.json` reports the commit that triggered the run. A pipeline that
+goes green because `aws s3 sync` exited zero has proved the upload worked, not that
+the site is up.
+
+```mermaid
+flowchart LR
+    A["push to main"] --> B["OIDC → temporary<br/>AWS credentials"]
+    B --> C["build.sh<br/>dist/"]
+    C --> D["s3 sync --delete<br/>with Cache-Control"]
+    D --> E["CloudFront<br/>invalidation"]
+    E --> F["verify against<br/>the live site"]
+
+    classDef gh fill:#1a1630,stroke:#a37bff,color:#e9edfa
+    classDef aws fill:#12203a,stroke:#6ea8ff,color:#e9edfa
+    class A,C gh
+    class B,D,E,F aws
+```
+
+---
+
+## Deploy it yourself
+
+### 1. Infrastructure
+
+```bash
+aws sts get-caller-identity     # confirm the account before you change it
+
+cd infra
+cp terraform.tfvars.example terraform.tfvars
+terraform init
+terraform plan
+terraform apply
+```
+
+### 2. Pipeline
+
+```bash
+terraform output deployment_configuration
+```
+
+Set those five values as repository **variables** (Settings → Secrets and variables →
+Actions → Variables). They are identifiers, not credentials — a role ARN is useless
+without an OIDC token from the repository named in its trust policy.
+
+Set `github_repository` in `terraform.tfvars` to your own fork and re-apply, otherwise
+the role's trust policy will not recognise your workflow.
+
+### 3. Ship
+
+```bash
+git push origin main
+```
+
+Or from a laptop, without the pipeline:
+
+```bash
+make deploy invalidate verify
+```
+
+---
+
+## Custom domain
+
+Nothing about the domain is hard-coded. The site runs perfectly on the free
+`*.cloudfront.net` name, and a custom domain is opt-in.
+
+**DNS in Route 53, same account** — one apply:
+
+```hcl
+domain_name          = "launchpad.example.com"
+route53_zone_id      = "Z0123456789ABCDEFGHIJ"
+attach_custom_domain = true
+```
+
+**DNS anywhere else** (Cloudflare, the registrar, a corporate zone) — two applies:
+
+```bash
+# 1. Request the certificate
+#    terraform.tfvars: domain_name = "launchpad.example.com"
+terraform apply
+terraform output acm_validation_records   # create these at your DNS provider
+
+# 2. Once the certificate is ISSUED
+#    terraform.tfvars: attach_custom_domain = true
+terraform apply
+terraform output dns_target               # point your domain here
+```
+
+Certificates for CloudFront **must** be issued in `us-east-1` regardless of where the
+bucket lives — that is what the `aws.us_east_1` provider alias in `providers.tf` is
+for. A certificate in the wrong region is valid and completely invisible to
+CloudFront, which is the most common reason a custom domain "does not work".
+
+Those validation records must stay in place after issuance. ACM re-checks them at
+renewal, so deleting them produces an expired certificate months later, with no
+warning.
+
+---
+
+## Local development
+
+```bash
+./scripts/serve.sh    # http://localhost:8080
+./scripts/test.sh     # the checks CI runs
+./scripts/build.sh    # produce dist/
+```
+
+Only Git and Python 3 are needed to run and test the site. Terraform and the AWS CLI
+become relevant when you deploy.
+
+| Script | Does |
+| --- | --- |
+| `scripts/serve.sh` | Serves the repository root over HTTP |
+| `scripts/test.sh` | Files, HTML structure, link resolution, JS syntax, secrets, build, HTTP smoke test |
+| `scripts/build.sh` | Assembles `dist/` from an explicit file list and stamps the build |
+| `scripts/deploy.sh` | Two-pass `s3 sync --delete` with per-tier Cache-Control |
+| `scripts/invalidate.sh` | Creates a CloudFront invalidation, optionally waits |
+| `scripts/verify-deployment.sh` | Twelve assertions against the live site |
+
+`make help` lists the equivalent targets.
+
+---
+
+## Operations
+
+[**docs/runbook.md**](docs/runbook.md) covers rolling back a bad deployment, restoring
+previous object versions, checking for drift, and a table of the failures you are
+most likely to hit with their causes.
+
+---
+
+## Tear it down
+
+```bash
+cd infra
+terraform destroy
+```
+
+Everything in this project is disposable by design, and rebuilding it takes one
+command. Nothing here runs continuously, but CloudFront bills for data transfer and S3
+bills for storage, so destroy the stack when you are finished with it.
+
+`force_destroy_bucket = true` is needed for `destroy` to delete a bucket that still
+contains the site. Without it, `destroy` fails safely — which is the right default for
+anything holding data you would miss.
 
 ---
 
