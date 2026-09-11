@@ -1,7 +1,16 @@
 # Cloud Launchpad
 
-A static website deployed on AWS behind a private S3 bucket and CloudFront — the
-practical project for a hands-on cloud and platform engineering course.
+A hands-on cloud and platform engineering project focused on deploying, securing, and automating a static website on AWS.
+
+## AWS Architecture
+
+The production deployment uses a private S3 bucket as the origin, CloudFront as the public entry point, and GitHub Actions CICD to automate deployments.
+
+![AWS static site architecture](assets/images/architecture.svg)
+
+## Live Homepage
+
+The site itself is intentionally simple so the focus stays on the AWS infrastructure, deployment workflow, and platform engineering concepts behind it.
 
 ![The Cloud Launchpad homepage](docs/images/homepage.png)
 
