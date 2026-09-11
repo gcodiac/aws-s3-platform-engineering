@@ -5,7 +5,7 @@ Actions.
 
 ![The Cloud Launchpad homepage](docs/images/homepage.png)
 
-> **`platform-engineering`** — completed reference implementation.
+> **`platform-engineering`**  completed reference implementation.
 > [`main`](../../tree/main) is the plain starting site.
 
 **Follow the course → [https://s3.aliskool.com/](https://s3.aliskool.com/)**
@@ -41,18 +41,9 @@ Keeping the application static removes backend complexity, so the focus stays on
 
 ## Architecture
 
-```mermaid
-flowchart LR
-    V["Visitor<br/>browser"] -->|HTTPS| CF["Amazon CloudFront<br/>edge location"]
-    CF -->|"signed origin request<br/>Origin Access Control"| S3["Amazon S3<br/>private bucket"]
-    ACM["AWS Certificate Manager<br/>us-east-1"] -.->|TLS certificate| CF
-    X(("Public<br/>internet")) -.->|blocked · 403| S3
+The production deployment uses a private S3 bucket as the origin, CloudFront as the public entry point, and GitHub Actions CICD to automate deployments.
 
-    classDef aws fill:#12203a,stroke:#6ea8ff,color:#e9edfa
-    classDef bad fill:#2a1720,stroke:#ff6b81,color:#ffd7de
-    class CF,S3,ACM aws
-    class X bad
-```
+![AWS static site architecture](assets/images/architecture.svg)
 
 The bucket has no website endpoint and no public read policy. CloudFront is the only
 principal allowed to read it, and only for this one distribution. Full write-up:
@@ -64,7 +55,7 @@ principal allowed to read it, and only for this one distribution. Full write-up:
 
 | Area | Implementation |
 | --- | --- |
-| Storage | Private S3 — encrypted, versioned, no public access |
+| Storage | Private S3  encrypted, versioned, no public access |
 | CDN | CloudFront with Origin Access Control |
 | TLS | ACM, DNS-validated, optional custom domain |
 | IaC | Terraform, fully parameterised (no hard-coded domain or account) |
@@ -115,7 +106,7 @@ infra/
 └── outputs.tf
 ```
 
-- Private, encrypted, versioned S3 bucket — no website endpoint, no public policy
+- Private, encrypted, versioned S3 bucket  no website endpoint, no public policy
 - CloudFront + Origin Access Control, so the bucket never needs to be public
 - ACM certificate and Route 53 records, both optional
 - GitHub OIDC provider and a deploy role scoped to this bucket and this distribution
@@ -141,7 +132,7 @@ deploy from a laptop instead: `make deploy invalidate verify`.
 
 ## Custom domain
 
-Optional — the site works on the default `*.cloudfront.net` domain with no changes.
+Optional the site works on the default `*.cloudfront.net` domain with no changes.
 Certificates for CloudFront must be issued in `us-east-1` regardless of where the
 bucket lives. DNS can be Route 53 in the same account or any external provider.
 
@@ -149,9 +140,9 @@ bucket lives. DNS can be Route 53 in the same account or any external provider.
 
 ## Operations
 
-- [docs/architecture.md](docs/architecture.md) — security model, CI/CD flow, ALB decision
-- [docs/runbook.md](docs/runbook.md) — rollback, drift, common failures
-- [Course](https://s3.aliskool.com/) — step-by-step lessons built around this project
+- [docs/architecture.md](docs/architecture.md): security model, CI/CD flow, ALB decision
+- [docs/runbook.md](docs/runbook.md): rollback, drift, common failures
+- [Course](https://s3.aliskool.com/): step-by-step lessons built around this project
 
 ---
 
@@ -182,4 +173,4 @@ terraform destroy
 
 ## Licence
 
-MIT — see [LICENSE](LICENSE).
+MIT  see [LICENSE](LICENSE).
