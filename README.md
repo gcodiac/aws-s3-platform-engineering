@@ -45,26 +45,6 @@ Keeping the application static removes backend complexity, so the focus stays on
 
 ---
 
-## Architecture
-
-```mermaid
-flowchart LR
-    V["Visitor<br/>browser"] -->|HTTPS| CF["Amazon CloudFront<br/>edge location"]
-    CF -->|"signed origin request<br/>(Origin Access Control)"| S3["Amazon S3<br/>private bucket"]
-    ACM["AWS Certificate Manager<br/>us-east-1"] -.->|TLS certificate| CF
-    X(("Public<br/>internet")) -.->|blocked · 403| S3
-
-    classDef aws fill:#1b2436,stroke:#6ea8ff,color:#e9edfa
-    classDef bad  fill:#2a1720,stroke:#ff6b81,color:#ffd7de,stroke-dasharray:4 3
-    class CF,S3,ACM aws
-    class X bad
-```
-
-The bucket is never public. CloudFront is the only thing allowed to read it, and only
-for this one distribution — everything else gets `403 AccessDenied`.
-
----
-
 ## What you'll learn
 
 | Topic | Where it shows up |
